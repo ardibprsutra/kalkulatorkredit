@@ -14,7 +14,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <div>
         <label class="block text-sm font-medium mb-1">Plafon Pinjaman</label>
-        <input id="plafon" type="number" class="w-full border rounded-lg p-2" placeholder="100000000">
+        <input id="plafon" type="text" class="w-full border rounded-lg p-2" placeholder="100000000">
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Suku Bunga (%) per tahun</label>
@@ -49,7 +49,12 @@
 
     <!-- Tabel -->
     <div id="tabelWrap" class="hidden mt-6">
-      <h2 class="text-lg font-semibold mb-2">Tabel Angsuran</h2>
+      <h2 class="text-lg font-semibold mb-2 flex justify-between items-center">
+        <span>Tabel Angsuran</span>
+        <button onclick="window.print()" id="btnCetak" class="hidden bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm">
+          Cetak
+        </button>
+      </h2>
       <div class="overflow-x-auto">
         <table class="min-w-full border border-gray-200 text-sm text-right">
           <thead class="bg-gray-100">
@@ -72,8 +77,23 @@
       return new Intl.NumberFormat('id-ID').format(num);
     }
 
+    // Format input plafon dengan titik ribuan
+    const plafonInput = document.getElementById('plafon');
+    plafonInput.addEventListener('input', function(e) {
+      let value = this.value.replace(/\D/g, ""); // hapus semua non digit
+      if (value) {
+        this.value = new Intl.NumberFormat('id-ID').format(value);
+      } else {
+        this.value = "";
+      }
+    });
+
+    function getPlafonValue() {
+      return parseFloat(plafonInput.value.replace(/\./g, "").replace(/,/g, "")) || 0;
+    }
+
     function hitungKredit() {
-      var plafon = parseFloat(document.getElementById('plafon').value) || 0;
+      var plafon = getPlafonValue();
       var tenor = parseInt(document.getElementById('tenor').value) || 0;
       var bungaTahunan = parseFloat(document.getElementById('bunga').value) || 0;
       var jenis = document.getElementById('jenisBunga').value;
@@ -141,6 +161,7 @@
       document.getElementById('totalBayar').innerText = "Total bayar: Rp " + fmt(Math.round(totalBayar));
 
       document.getElementById('tabelWrap').classList.remove('hidden');
+      document.getElementById('btnCetak').classList.remove('hidden');
     }
   </script>
 </body>
