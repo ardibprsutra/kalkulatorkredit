@@ -1,0 +1,329 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalkulator Kredit</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* scrollbar halus untuk tabel */
+    .thin-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    .thin-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div class="max-w-5xl mx-auto p-4 sm:p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Kalkulator Kredit</h1>
+      <p class="text-slate-600">Hitung cicilan bulanan, total bunga, dan lihat tabel amortisasi (Anuitas/Efektif & Flat).</p>
+    </header><!-- Kartu Input -->
+<div class="grid md:grid-cols-3 gap-4 items-start">
+  <section class="md:col-span-2 bg-white rounded-2xl shadow p-4 sm:p-6">
+    <h2 class="font-semibold text-lg mb-4">Data Pinjaman</h2>
+    <form id="loanForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="block">
+        <span class="text-sm text-slate-600">Harga/Plafon (Rp)</span>
+        <input type="text" inputmode="numeric" id="amount" required placeholder="100.000.000" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+      </label>
+
+      <label class="block">
+        <span class="text-sm text-slate-600">Uang Muka (Rp) — opsional</span>
+        <input type="text" inputmode="numeric" id="downPayment" placeholder="0" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+      </label>
+
+      <label class="block">
+        <span class="text-sm text-slate-600">Suku Bunga (% per tahun)</span>
+        <input type="number" step="0.01" min="0" id="annualRate" required placeholder="12" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+      </label>
+
+      <div class="grid grid-cols-3 gap-2 sm:gap-3">
+        <label class="block col-span-2">
+          <span class="text-sm text-slate-600">Tenor</span>
+          <input type="number" min="1" id="tenor" required placeholder="36" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Satuan</span>
+          <select id="tenorUnit" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="bulan">Bulan</option>
+            <option value="tahun">Tahun</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="text-sm text-slate-600">Jenis Bunga</span>
+        <select id="interestType" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+          <option value="anuitas">Anuitas / Efektif</option>
+          <option value="flat">Flat</option>
+        </select>
+      </label>
+
+      <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <label class="block">
+          <span class="text-sm text-slate-600">Biaya Admin (Rp)</span>
+          <input type="text" inputmode="numeric" id="adminFee" placeholder="0" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-slate-600">Asuransi (Rp)</span>
+          <input type="text" inputmode="numeric" id="insurance" placeholder="0" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+        </label>
+        <label class="flex items-center gap-2 mt-6">
+          <input type="checkbox" id="rollFees" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+          <span class="text-sm">Gabungkan biaya ke pinjaman</span>
+        </label>
+      </div>
+
+      <div class="sm:col-span-2 flex flex-wrap gap-2 mt-2">
+        <button type="submit" class="px-4 py-2 rounded-2xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none">Hitung</button>
+        <button type="button" id="resetBtn" class="px-4 py-2 rounded-2xl bg-slate-200 text-slate-800 hover:bg-slate-300">Reset</button>
+        <button type="button" id="downloadBtn" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700" disabled>Unduh CSV</button>
+        <button type="button" id="printBtn" class="px-4 py-2 rounded-2xl bg-slate-800 text-white hover:bg-black" disabled>Cetak</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Ringkasan -->
+  <aside class="bg-white rounded-2xl shadow p-4 sm:p-6 sticky top-4">
+    <h2 class="font-semibold text-lg mb-4">Ringkasan</h2>
+    <dl class="space-y-3 text-sm">
+      <div class="flex justify-between">
+        <dt>Pinjaman Bersih</dt>
+        <dd id="summaryPrincipal" class="font-semibold">Rp0</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Cicilan / Bulan</dt>
+        <dd id="summaryPayment" class="font-semibold">Rp0</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Total Bunga</dt>
+        <dd id="summaryInterest" class="font-semibold">Rp0</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt>Total Pembayaran</dt>
+        <dd id="summaryTotal" class="font-semibold">Rp0</dd>
+      </div>
+    </dl>
+    <p id="note" class="text-xs text-slate-500 mt-4">Catatan: Perhitungan anuitas menggunakan suku bunga efektif bulanan dengan pembulatan 2 desimal.</p>
+  </aside>
+</div>
+
+<!-- Tabel Amortisasi -->
+<section id="tableSection" class="mt-6 hidden">
+  <div class="bg-white rounded-2xl shadow overflow-hidden">
+    <div class="flex items-center justify-between p-4">
+      <h3 class="font-semibold">Tabel Amortisasi</h3>
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-slate-600">Baris per halaman</label>
+        <select id="rowsPerPage" class="rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+          <option>12</option>
+          <option>24</option>
+          <option>60</option>
+          <option>120</option>
+          <option>Semua</option>
+        </select>
+      </div>
+    </div>
+    <div class="overflow-x-auto thin-scroll">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-100 text-slate-600">
+          <tr>
+            <th class="text-left px-4 py-2">#</th>
+            <th class="text-right px-4 py-2">Pembayaran</th>
+            <th class="text-right px-4 py-2">Bunga</th>
+            <th class="text-right px-4 py-2">Pokok</th>
+            <th class="text-right px-4 py-2">Sisa Pokok</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="flex items-center justify-between p-4 border-t">
+      <button id="prevPage" class="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40">Sebelumnya</button>
+      <span id="pageInfo" class="text-sm text-slate-600"></span>
+      <button id="nextPage" class="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-40">Berikutnya</button>
+    </div>
+  </div>
+</section>
+
+<footer class="text-center text-xs text-slate-500 mt-6">
+  Dibuat untuk perhitungan cepat — selalu verifikasi dengan simulasi resmi lembaga pembiayaan.
+</footer>
+
+  </div>  <script>
+    // Util: format & parse rupiah
+    const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+    function parseNumber(s) {
+      if (typeof s === 'number') return s;
+      if (!s) return 0;
+      // hapus non digit
+      s = ('' + s).replace(/[^0-9.,-]/g, '').replace(/\./g, '').replace(/,/g, '.');
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+    function fmt(n) { return rupiah.format(Math.round(n)); }
+
+    // Elemen
+    const amountEl = document.getElementById('amount');
+    const downEl = document.getElementById('downPayment');
+    const rateEl = document.getElementById('annualRate');
+    const tenorEl = document.getElementById('tenor');
+    const unitEl = document.getElementById('tenorUnit');
+    const typeEl = document.getElementById('interestType');
+    const adminEl = document.getElementById('adminFee');
+    const insEl = document.getElementById('insurance');
+    const rollEl = document.getElementById('rollFees');
+
+    const sumPrincipal = document.getElementById('summaryPrincipal');
+    const sumPayment = document.getElementById('summaryPayment');
+    const sumInterest = document.getElementById('summaryInterest');
+    const sumTotal = document.getElementById('summaryTotal');
+
+    const tableSection = document.getElementById('tableSection');
+    const tableBody = document.getElementById('tableBody');
+    const rowsPerPageEl = document.getElementById('rowsPerPage');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    const pageInfo = document.getElementById('pageInfo');
+
+    const dlBtn = document.getElementById('downloadBtn');
+    const printBtn = document.getElementById('printBtn');
+
+    let schedule = []; // global hasil
+    let currentPage = 1;
+
+    // Format input rupiah saat blur
+    [amountEl, downEl, adminEl, insEl].forEach(el => {
+      el.addEventListener('blur', () => {
+        const n = parseNumber(el.value);
+        el.value = n ? fmt(n) : '';
+      });
+    });
+
+    // Hitung
+    document.getElementById('loanForm').addEventListener('submit', e => {
+      e.preventDefault();
+      calculate();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('loanForm').reset();
+      sumPrincipal.textContent = sumPayment.textContent = sumInterest.textContent = sumTotal.textContent = 'Rp0';
+      tableSection.classList.add('hidden');
+      dlBtn.disabled = true; printBtn.disabled = true;
+    });
+
+    rowsPerPageEl.addEventListener('change', () => renderTable());
+    prevBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTable(); } });
+    nextBtn.addEventListener('click', () => { currentPage++; renderTable(); });
+
+    dlBtn.addEventListener('click', () => downloadCSV());
+    printBtn.addEventListener('click', () => window.print());
+
+    function calculate() {
+      const price = parseNumber(amountEl.value);
+      const dp = parseNumber(downEl.value);
+      const admin = parseNumber(adminEl.value);
+      const ins = parseNumber(insEl.value);
+      const rateY = parseFloat(rateEl.value || '0');
+      let n = parseInt(tenorEl.value || '0', 10);
+      if (unitEl.value === 'tahun') n = n * 12;
+
+      if (!price || !n) {
+        alert('Mohon isi Harga/Plafon dan Tenor yang valid.');
+        return;
+      }
+      const principalBase = Math.max(0, price - dp);
+      const financedFees = rollEl.checked ? (admin + ins) : 0;
+      const P = principalBase + financedFees;
+
+      const r = (rateY / 100) / 12; // bulanan
+
+      let pay = 0, scheduleOut = [], totalInterest = 0;
+
+      if (typeEl.value === 'anuitas') {
+        // pembayaran bulanan konstan
+        if (r === 0) {
+          pay = P / n;
+        } else {
+          pay = P * (r) / (1 - Math.pow(1 + r, -n));
+        }
+        let bal = P;
+        for (let i = 1; i <= n; i++) {
+          const interest = +(bal * r).toFixed(2);
+          const principal = +(pay - interest);
+          bal = +(bal - principal);
+          if (i === n) { // bersihkan rounding
+            const adj = bal; // bisa negatif kecil
+            pay -= adj;
+            bal = 0;
+          }
+          scheduleOut.push({ idx: i, pay, interest, principal, balance: Math.max(0, bal) });
+          totalInterest += interest;
+        }
+      } else { // flat
+        const interestMonthly = P * (rateY / 100) / 12;
+        const principalMonthly = P / n;
+        pay = interestMonthly + principalMonthly;
+        let bal = P;
+        for (let i = 1; i <= n; i++) {
+          const interest = +interestMonthly.toFixed(2);
+          const principal = +principalMonthly.toFixed(2);
+          bal = +(bal - principal);
+          if (i === n) bal = 0;
+          scheduleOut.push({ idx: i, pay, interest, principal, balance: Math.max(0, bal) });
+          totalInterest += interest;
+        }
+      }
+
+      schedule = scheduleOut;
+      currentPage = 1;
+
+      // Ringkasan
+      sumPrincipal.textContent = fmt(P);
+      sumPayment.textContent = fmt(scheduleOut[0]?.pay || 0);
+      sumInterest.textContent = fmt(totalInterest);
+      sumTotal.textContent = fmt(P + totalInterest);
+
+      // Tabel on
+      tableSection.classList.remove('hidden');
+      dlBtn.disabled = false; printBtn.disabled = false;
+      renderTable();
+    }
+
+    function renderTable() {
+      const rowsSetting = rowsPerPageEl.value;
+      const perPage = rowsSetting === 'Semua' ? schedule.length : parseInt(rowsSetting, 10);
+      const totalPages = Math.max(1, Math.ceil(schedule.length / perPage));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * perPage;
+      const end = rowsSetting === 'Semua' ? schedule.length : start + perPage;
+
+      tableBody.innerHTML = schedule.slice(start, end).map(row => `
+        <tr class="odd:bg-white even:bg-slate-50">
+          <td class="px-4 py-2">${row.idx}</td>
+          <td class="px-4 py-2 text-right">${fmt(row.pay)}</td>
+          <td class="px-4 py-2 text-right">${fmt(row.interest)}</td>
+          <td class="px-4 py-2 text-right">${fmt(row.principal)}</td>
+          <td class="px-4 py-2 text-right">${fmt(row.balance)}</td>
+        </tr>
+      `).join('');
+
+      pageInfo.textContent = Halaman ${currentPage} dari ${totalPages};
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+    }
+
+    function downloadCSV() {
+      if (!schedule.length) return;
+      const header = ['Periode', 'Pembayaran', 'Bunga', 'Pokok', 'Sisa Pokok'];
+      const rows = schedule.map(r => [r.idx, Math.round(r.pay), Math.round(r.interest), Math.round(r.principal), Math.round(r.balance)]);
+      const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'amortisasi.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script></body>
+</html>
