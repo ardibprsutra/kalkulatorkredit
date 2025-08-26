@@ -18,7 +18,7 @@
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Suku Bunga (%) Per Tahun</label>
-        <input id="bunga" type="number" class="w-full border rounded-lg p-2" placeholder="10">
+        <input id="bunga" type="number" class="w-full border rounded-lg p-2 bg-gray-100" readonly>
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Jenis Bunga</label>
@@ -77,6 +77,14 @@
         </table>
       </div>
     </div>
+
+    <!-- Footnote -->
+    <div class="mt-6 text-xs text-gray-600 italic space-y-1">
+      <p>Perhitungan ini hanya merupakan simulasi estimasi dan bukan merupakan penawaran yang mengikat.</p>
+      <p>Hasil simulasi dapat berbeda dengan perhitungan resmi di kantor BPR sesuai dengan data aktual, biaya administrasi, asuransi, dan ketentuan yang berlaku.</p>
+      <p>Suku bunga dapat berubah sewaktu-waktu mengikuti kebijakan BPR dan/atau regulasi OJK yang berlaku.</p>
+      <p>Simulasi tidak memperhitungkan biaya tambahan lain (misalnya denda keterlambatan, provisi, asuransi, pajak, dan biaya lain-lain).</p>
+    </div>
   </div>
 
   <script>
@@ -89,6 +97,18 @@
       let value = e.target.value.replace(/\D/g, "");
       e.target.value = value ? new Intl.NumberFormat('id-ID').format(value) : "";
     });
+
+    // set bunga otomatis sesuai jenis bunga
+    document.getElementById('jenis').addEventListener('change', function() {
+      if (this.value === "flat") {
+        document.getElementById('bunga').value = 13.2;
+      } else {
+        document.getElementById('bunga').value = 16.8;
+      }
+    });
+
+    // set default awal
+    document.getElementById('bunga').value = 13.2;
 
     function hitungKredit() {
       var plafonStr = document.getElementById('plafon').value.replace(/\./g, "").replace(/,/g, "");
